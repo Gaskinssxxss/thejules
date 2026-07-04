@@ -1,0 +1,2 @@
+# Runtime Python code uses only the Python standard library.
+# Keep this file for deployment tools that expect requirements.txt.

@@ -1,0 +1,17 @@
+{
+  "mode": "direct-server",
+  "description": "Production-style deployment: collector runs on the target server and posts directly to ESP32.",
+  "collector": {
+    "interface": "eth0",
+    "esp32_url": "http://ESP32_IP",
+    "username": "admin",
+    "password": "CHANGE_ME",
+    "test_id": "TEST_DIRECT_SERVER_TCP_SYN_01",
+    "target_ip": "SERVER_TARGET_IP",
+    "target_ports": [80, 443, 8080],
+    "window_ms": 5000
+  },
+  "relay": {
+    "enabled": false
+  }
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=TheJules packet telemetry collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/thejules
+ExecStart=/usr/bin/python3 /opt/thejules/collector/collector.py --config /etc/thejules/collector.json
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,14 @@
+{
+  "mode": "vps-http-ddos-public",
+  "description": "Application-layer DDoS test on a public VPS HTTP target server.",
+  "http_target": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "server_ip": "SERVER_PUBLIC_IP",
+    "esp32_url": "https://RELAY_PUBLIC_URL",
+    "username": "admin",
+    "password": "CHANGE_ME",
+    "test_id": "TEST_DDOS_HTTP_VPS_PUBLIC_01",
+    "window_ms": 5000
+  }
+}

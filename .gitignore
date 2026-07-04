@@ -1,1 +1,31 @@
+# Local/runtime
 tmp/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Local editor state
+.vscode/
+
+# Local firmware secrets
+firmware/telemetry_ids_esp32/config.h
+
+# Local runtime configs. Keep only *.example.json in git.
+config/current-*.json
+config/*.local.json
+
+# Generated or downloaded binaries/tools
+tools/bin/
+
+# Thesis/proposal/reference artifacts, not project source.
+proposal_baru/
+references/
+results/
+scripts/
+tools/download_skripsi_references.py
+*.pdf
+*.docx
+
+# Legacy prototype kept locally only.
+old/

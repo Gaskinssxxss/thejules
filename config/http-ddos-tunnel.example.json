@@ -1,0 +1,14 @@
+{
+  "mode": "http-ddos-tunnel",
+  "description": "Application-layer DDoS test through a public tunnel to an HTTP target server.",
+  "http_target": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "server_ip": "PC_B_PUBLIC_SIM",
+    "esp32_url": "http://ESP32_OR_RELAY_URL",
+    "username": "admin",
+    "password": "CHANGE_ME",
+    "test_id": "TEST_DDOS_HTTP_TUNNEL_01",
+    "window_ms": 5000
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "interface": "eth0",
+  "esp32_url": "http://ESP32_IP",
+  "username": "admin",
+  "password": "CHANGE_ME",
+  "test_id": "TEST_OPSI_A_01",
+  "target_ip": "SERVER_TARGET_IP",
+  "target_ports": [8080, 9999],
+  "window_ms": 5000
+}
