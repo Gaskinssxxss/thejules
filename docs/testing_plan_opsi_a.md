@@ -1,64 +1,54 @@
-# Rencana Pengujian Opsi 1
+# Testing Plan Opsi 1
 
-Tujuan pengujian adalah memastikan collector dapat mengirim telemetry ke ESP32 dan rule pada ESP32 dapat membedakan traffic normal dan traffic serangan.
+## Tujuan
 
-Skenario minimal:
+Pengujian bertujuan memastikan collector dapat membaca traffic pada server target, mengirim telemetry ke ESP32, dan ESP32 dapat menghasilkan alert ketika rule terpenuhi.
 
-| ID | Skenario | Ekspektasi |
+## Tahapan
+
+1. Pastikan ESP32 tersambung ke jaringan dan Web UI dapat diakses.
+2. Jalankan hybrid collector pada server target atau PC target lab.
+3. Pastikan telemetry normal masuk ke `/telemetry.csv`.
+4. Jalankan baseline traffic normal.
+5. Jalankan traffic rendah di bawah threshold.
+6. Jalankan TCP SYN Flood terkontrol di lab yang diizinkan.
+7. Jalankan HTTP request flood terkontrol.
+8. Unduh `/alerts.csv`, `/telemetry.csv`, dan `/stats.csv`.
+9. Hitung TP, TN, FP, FN, dan detection delay.
+
+## Skenario Minimal
+
+| Test ID | Skenario | Ekspektasi |
 | --- | --- | --- |
-| TEST_NORMAL_HTTP_01 | HTTP normal ke server | Tidak muncul alert |
-| TEST_TCP_SYN_LOW_01 | TCP SYN rendah | Tidak muncul alert jika di bawah threshold |
-| TEST_TCP_SYN_HIGH_01 | TCP SYN tinggi | Muncul alert `RULE_TCP_SYN_001` |
-| TEST_DDOS_HTTP_LOW_01 | HTTP request ringan ke endpoint publik | Tidak muncul alert jika di bawah threshold |
-| TEST_DDOS_HTTP_HIGH_01 | HTTP request flood ke endpoint publik | Muncul alert `RULE_DDOS_HTTP_001` |
+| TEST_NORMAL_HTTP_01 | HTTP normal 20 request | Tidak alert |
+| TEST_DDOS_HTTP_LOW_01 | HTTP 80 request | Tidak alert |
+| TEST_DDOS_HTTP_HIGH_01 | HTTP 320 request | Alert HTTP DDoS |
+| TEST_TCP_SYN_LOW_01 | TCP SYN rendah | Tidak alert |
+| TEST_TCP_SYN_HIGH_01 | TCP SYN tinggi | Alert TCP SYN |
 
-KPI rinci tersedia di:
+## Command Contoh
 
-```text
-docs/kpi_pengujian_opsi_1.md
-```
-
-Langkah validasi firmware tanpa collector:
+HTTP normal:
 
 ```bash
-python3 tools/send_test_telemetry.py --esp32-url http://IP_ESP32 --scenario all --target-ip 192.168.4.4
-curl -u admin:CHANGE_ME http://IP_ESP32/alerts.csv
-curl -u admin:CHANGE_ME http://IP_ESP32/stats.csv
+TARGET=http://SERVER_TARGET_IP:8080
+curl -s "$TARGET" >/dev/null
 ```
 
-Langkah pengujian collector lokal:
+HTTP request flood terkontrol:
 
 ```bash
-python3 -m http.server 8080
+URL=http://SERVER_TARGET_IP:8080
+seq 1 320 | xargs -P 80 -I{} curl --max-time 10 -s "$URL/?p={}" >/dev/null
 ```
 
-Pada terminal lain di PC B:
+TCP SYN Flood terkontrol:
 
 ```bash
-sudo python3 collector/collector.py \
-  --interface NAMA_INTERFACE_SERVER \
-  --esp32-url http://IP_ESP32 \
-  --target-ip IP_PC_B \
-  --target-ports 8080 \
-  --test-id TEST_TCP_SYN_LAB_01
+TARGET=SERVER_TARGET_IP
+sudo hping3 -S -c 500 -i u1000 -p 8080 $TARGET
 ```
 
-Dari PC A:
+## Catatan Etis
 
-```bash
-TARGET=IP_PC_B; curl -s http://$TARGET:8080 >/dev/null
-TARGET=IP_PC_B; for i in {1..200}; do curl -s http://$TARGET:8080 >/dev/null; done
-TARGET=IP_PC_B; hping3 -S -c 500 -i u1000 -p 8080 $TARGET
-```
-
-Langkah pengujian publik dengan VPS mengikuti KPI di `docs/kpi_pengujian_opsi_1.md`, yaitu:
-
-```text
-PC A attacker -> public IP/port VPS -> collector pada VPS -> relay opsional -> ESP32
-```
-
-Catatan:
-
-- `collector.py` membutuhkan hak akses raw socket. Jalankan dengan `sudo` atau beri capability `cap_net_raw`.
-- Jika `hping3` belum tersedia, pengujian SYN flood bisa diganti dengan tool lain yang mampu mengirim TCP SYN tanpa menyelesaikan koneksi.
-- Relay bukan bagian wajib arsitektur Opsi 1. Relay hanya dipakai saat pengujian karena ESP32 berada di jaringan lokal yang tidak bisa diakses langsung dari VPS.
+Pengujian flood hanya boleh dilakukan pada server milik sendiri, lab tertutup, atau server yang diberikan izin eksplisit. Jangan menjalankan command flood ke sistem publik atau jaringan produksi tanpa izin.

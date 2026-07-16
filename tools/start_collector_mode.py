@@ -29,6 +29,8 @@ def collector_command(config: dict) -> list:
         os.path.join(ROOT, "collector", "collector.py"),
         "--interface", collector["interface"],
         "--esp32-url", collector["esp32_url"],
+        "--username", collector.get("username", "admin"),
+        "--password", collector.get("password", "CHANGE_ME"),
         "--test-id", collector["test_id"],
         "--window-ms", str(collector.get("window_ms", 5000)),
     ]
@@ -36,38 +38,11 @@ def collector_command(config: dict) -> list:
         cmd += ["--target-ip", collector["target_ip"]]
     if ports:
         cmd += ["--target-ports", ports]
+    if collector.get("http_host"):
+        cmd += ["--http-host", collector["http_host"]]
+    if collector.get("http_port"):
+        cmd += ["--http-port", str(collector["http_port"])]
     return cmd
-
-
-def http_target_command(config: dict) -> list:
-    target = config["http_target"]
-    require_keys(target, ["server_ip", "esp32_url", "test_id"], "http_target")
-    return [
-        "python3",
-        os.path.join(ROOT, "collector", "http_target_server.py"),
-        "--host", target.get("host", "0.0.0.0"),
-        "--port", str(target.get("port", 8080)),
-        "--server-ip", target["server_ip"],
-        "--esp32-url", target["esp32_url"],
-        "--username", target.get("username", "admin"),
-        "--password", target.get("password", "CHANGE_ME"),
-        "--test-id", target["test_id"],
-        "--window-ms", str(target.get("window_ms", 5000)),
-    ]
-
-
-def relay_command(config: dict) -> list:
-    relay = config["relay"]
-    require_keys(relay, ["target_url"], "relay")
-    return [
-        "python3",
-        os.path.join(ROOT, "collector", "telemetry_relay.py"),
-        "--host", relay.get("host", "127.0.0.1"),
-        "--port", str(relay.get("port", 18080)),
-        "--target-url", relay["target_url"],
-        "--username", relay.get("username", "admin"),
-        "--password", relay.get("password", "CHANGE_ME"),
-    ]
 
 
 def print_command(cmd: list, sudo: bool = False) -> None:
@@ -84,20 +59,13 @@ def quote(value: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a deployment mode from config.")
     parser.add_argument("config", help="Path to mode JSON config.")
-    parser.add_argument("--component", choices=["collector", "relay", "http-target"], default="collector")
-    parser.add_argument("--sudo", action="store_true", help="Run command with sudo. Useful for packet collector raw socket.")
+    parser.add_argument("--component", choices=["collector"], default="collector")
+    parser.add_argument("--sudo", action="store_true", help="Run command with sudo. Required for the hybrid collector raw socket.")
     parser.add_argument("--print-only", action="store_true", help="Print command without executing it.")
     args = parser.parse_args()
 
     config = load_config(args.config)
-    if args.component == "collector":
-        cmd = collector_command(config)
-    elif args.component == "relay":
-        if not config.get("relay", {}).get("enabled", False):
-            raise SystemExit("relay is disabled in this config")
-        cmd = relay_command(config)
-    else:
-        cmd = http_target_command(config)
+    cmd = collector_command(config)
 
     if args.print_only:
         print_command(cmd, sudo=args.sudo)
@@ -110,4 +78,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

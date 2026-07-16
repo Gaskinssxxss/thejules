@@ -6,18 +6,18 @@ berperan sebagai rule engine, Web UI, alert dashboard, dan CSV logger.
 
 ## Scope Deteksi
 
-- TCP SYN Flood melalui telemetry `syn_count`.
+- TCP SYN Flood melalui telemetry `syn_count` dengan `payload_bytes = 0`.
 - HTTP request flood sebagai representasi DDoS layer aplikasi melalui telemetry
   `http_requests`.
 
 ## Struktur Project
 
 - `firmware/telemetry_ids_esp32/` firmware ESP32 rule engine dan Web UI.
-- `collector/` packet collector, HTTP target collector, dan relay telemetry.
+- `collector/` hybrid collector untuk packet TCP SYN dan HTTP request counter.
 - `tools/` CLI/helper untuk menjalankan mode deployment dan pengujian.
 - `config/` template konfigurasi deployment.
 - `docs/` dokumentasi teknis arsitektur, setup, schema, dan rencana pengujian.
-- `systemd/` contoh service untuk collector dan relay.
+- `systemd/` contoh service untuk collector.
 
 Folder skripsi, referensi, hasil uji, virtualenv, dan prototype lama tidak
 diikutkan ke Git.
@@ -35,8 +35,8 @@ digunakan.
 
 ## Setup Collector
 
-Collector menggunakan Python standard library. Untuk packet collector pada Linux,
-jalankan dengan privilege root karena memakai raw socket.
+Collector menggunakan Python standard library. Jalankan dengan privilege root
+karena hybrid collector membuka raw socket untuk membaca fitur TCP SYN.
 
 ```bash
 cp config/direct-server.example.json config/my-direct-server.json
@@ -51,6 +51,8 @@ sudo python3 collector/collector.py \
   --esp32-url http://ESP32_IP \
   --target-ip SERVER_TARGET_IP \
   --target-ports 80,443,8080 \
+  --http-host 0.0.0.0 \
+  --http-port 8080 \
   --test-id TEST_DIRECT_SERVER_TCP_SYN_01
 ```
 

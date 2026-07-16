@@ -17,7 +17,7 @@ Payload:
   "test_id": "TEST_TCP_SYN_01",
   "proto": "TCP",
   "src_ip": "110.136.217.94",
-  "dst_ip": "SERVER_INTERNAL_IP",
+  "dst_ip": "SERVER_TARGET_IP",
   "dst_port": 8080,
   "packet_count": 120,
   "syn_count": 120,
@@ -44,7 +44,7 @@ Makna field:
 
 Rule utama:
 
-- `RULE_TCP_SYN_001`: alert jika `proto=TCP`, `syn_count >= 100`, dan `window_ms <= 5000`.
+- `RULE_TCP_SYN_001`: alert jika `proto=TCP`, `syn_count >= 100`, `payload_bytes = 0`, dan `window_ms <= 5000`.
 - `RULE_DDOS_HTTP_001`: alert jika `proto=HTTP`, `packet_count >= 200`, dan `window_ms <= 5000`.
 
 Output ESP32:

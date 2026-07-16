@@ -160,7 +160,9 @@ void evaluateRules(const TelemetryRecord &record) {
   if (record.proto == "TCP") {
     tcpPackets += record.packet_count;
     tcpSynPackets += record.syn_count;
-    if (record.syn_count >= TCP_SYN_THRESHOLD_COUNT && record.window_ms <= DETECTION_WINDOW_MS) {
+    if (record.syn_count >= TCP_SYN_THRESHOLD_COUNT &&
+        record.payload_bytes == 0 &&
+        record.window_ms <= DETECTION_WINDOW_MS) {
       AlertRecord alert;
       alert.timestamp_ms = millis();
       alert.type = "TCP_SYN_FLOOD";

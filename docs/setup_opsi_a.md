@@ -1,128 +1,94 @@
-# Setup Opsi 1 - Collector di Server Target
+# Setup Opsi 1
 
-Opsi 1 menempatkan collector langsung pada server target. Pada implementasi riil, server target dapat berupa server Universitas Mataram. Pada pengujian saat ini, server target dapat direpresentasikan oleh VPS publik atau PC lokal.
+Opsi 1 menempatkan collector langsung pada server target. ESP32 menerima telemetry dan menjalankan rule-based detection.
 
-## 1. Konfigurasi Wi-Fi ESP32
+## 1. Flash Firmware ESP32
 
-Edit file:
+Salin konfigurasi:
+
+```bash
+cd firmware/telemetry_ids_esp32
+cp config.example.h config.h
+```
+
+Isi:
+
+- SSID Wi-Fi
+- Password Wi-Fi
+- Username Web UI
+- Password Web UI
+
+Upload firmware ke ESP32 menggunakan Arduino IDE atau toolchain yang digunakan.
+
+## 2. Cek ESP32
+
+```bash
+python3 tools/healthcheck.py --esp32-url http://ESP32_IP
+```
+
+Jika berhasil, ESP32 siap menerima telemetry di:
 
 ```text
-firmware/telemetry_ids_esp32/config.h
+POST http://ESP32_IP/telemetry
 ```
 
-Untuk jaringan open:
+## 3. Direct Server
 
-```cpp
-#define WIFI_SSID "nama_ssid"
-#define WIFI_PASSWORD ""
-#define WIFI_OPEN_NETWORK 1
-```
-
-Untuk jaringan WPA/WPA2:
-
-```cpp
-#define WIFI_SSID "nama_ssid"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define WIFI_OPEN_NETWORK 0
-```
-
-Jika ESP32 gagal masuk ke SSID tersebut, firmware akan membuat AP fallback:
-
-```text
-SSID: ESP32-IDS
-Password: CHANGE_ME45
-Web UI: http://192.168.4.1
-Login: admin / CHANGE_ME
-```
-
-AP fallback hanya cocok untuk validasi awal. Untuk pengujian Opsi 1 yang benar, collector harus bisa mengirim HTTP POST ke ESP32 atau ke relay jika ESP32 berada di jaringan lokal/NAT.
-
-## 2. Compile dan upload firmware
+Salin config:
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 firmware/telemetry_ids_esp32
-arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32doit-devkit-v1 firmware/telemetry_ids_esp32
+cp config/direct-server.example.json config/my-direct-server.json
 ```
 
-## 3. Validasi ESP32
+Edit:
 
-Buka Web UI:
+- `collector.interface`
+- `collector.esp32_url`
+- `collector.target_ip`
+- `collector.target_ports`
+- `collector.test_id`
 
-```text
-http://IP_ESP32
-```
-
-Login:
-
-```text
-username: admin
-password: CHANGE_ME
-```
-
-Cek endpoint:
+Jalankan:
 
 ```bash
-curl -u admin:CHANGE_ME http://IP_ESP32/stats.csv
+sudo python3 tools/start_collector_mode.py config/my-direct-server.json --component collector
 ```
 
-## 4. Jalankan service target
+## 4. Local Lab
 
-Untuk pengujian lokal:
+Salin config:
 
 ```bash
-python3 -m http.server 8080
+cp config/local-lab.example.json config/my-local-lab.json
 ```
 
-## 5. Jalankan collector pada server target
+Edit sesuai interface dan IP PC target.
 
-Cek nama interface:
+Jalankan di PC target:
 
 ```bash
-ip -brief addr
+sudo python3 tools/start_collector_mode.py config/my-local-lab.json --component collector
 ```
 
-Jalankan collector:
+## 5. HTTP Request Counter
+
+HTTP request counter sudah berjalan di dalam hybrid collector. Setelah collector aktif, uji endpoint HTTP:
 
 ```bash
-sudo python3 collector/collector.py \
-  --interface NAMA_INTERFACE_SERVER \
-  --esp32-url http://IP_ESP32 \
-  --target-ip IP_SERVER_TARGET \
-  --target-ports 8080 \
-  --test-id TEST_TCP_SYN_LAB_01
+curl http://SERVER_TARGET_IP:8080
 ```
 
-Untuk pengujian VPS publik, gunakan config:
+Kirim request flood terkontrol:
 
 ```bash
-tools/start_packet_collector.sh config/current-vps-relay.json
+URL=http://SERVER_TARGET_IP:8080
+seq 1 320 | xargs -P 80 -I{} curl --max-time 10 -s "$URL/?p={}" >/dev/null
 ```
 
-## 6. Jalankan traffic dari PC attacker/tester
-
-Normal HTTP:
+## 6. Ambil Log
 
 ```bash
-TARGET=IP_SERVER_TARGET; curl -s http://$TARGET:8080 >/dev/null
-```
-
-TCP SYN flood:
-
-```bash
-TARGET=IP_SERVER_TARGET; hping3 -S -c 500 -i u1000 -p 8080 $TARGET
-```
-
-Untuk pengujian publik yang sudah dipakai:
-
-```bash
-TARGET=SERVER_PUBLIC_IP
-sudo hping3 -S -c 500 -i u1000 -p 35122 $TARGET
-```
-
-## 7. Ambil hasil
-
-```bash
-curl -u admin:CHANGE_ME http://IP_ESP32/stats.csv
-curl -u admin:CHANGE_ME http://IP_ESP32/alerts.csv
-curl -u admin:CHANGE_ME http://IP_ESP32/telemetry.csv
+curl -u admin:CHANGE_ME http://ESP32_IP/telemetry.csv
+curl -u admin:CHANGE_ME http://ESP32_IP/alerts.csv
+curl -u admin:CHANGE_ME http://ESP32_IP/stats.csv
 ```

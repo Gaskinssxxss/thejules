@@ -7,6 +7,7 @@ __pycache__/
 
 # Local editor state
 .vscode/
+.~lock.*
 
 # Local firmware secrets
 firmware/telemetry_ids_esp32/config.h
@@ -14,11 +15,14 @@ firmware/telemetry_ids_esp32/config.h
 # Local runtime configs. Keep only *.example.json in git.
 config/current-*.json
 config/*.local.json
+collector/*.local.json
 
 # Generated or downloaded binaries/tools
 tools/bin/
+*.deb
 
 # Thesis/proposal/reference artifacts, not project source.
+archive_non_project_*/
 proposal_baru/
 references/
 results/
@@ -26,6 +30,47 @@ scripts/
 tools/download_skripsi_references.py
 *.pdf
 *.docx
+*.odt
+*.doc
+*.pptx
+*.xlsx
+*.html
+*_files/
+FORMAT_AUDIT_*.md
+Untitled Diagram*.png
+sum.js
+trops.txt
+docs/audit_*.md
+docs/bahan_bimbingan_*.md
+docs/diagrams/
+docs/figures/
+
+# Thesis/proposal document-generation utilities kept locally only.
+tools/*thesis*.py
+tools/*skripsi*.py
+tools/*proposal*.py
+tools/*docx*.py
+tools/*toc*.py
+tools/*libreoffice*.py
+tools/*diagram*.py
+tools/*figure*.py
+tools/*figures*.py
+tools/*format*.py
+tools/*reference*.py
+tools/*references*.py
+tools/collect_used_references.sh
+tools/apply_new_title_scope_uno.py
+tools/fix_code_tables_and_borders.py
+tools/*use_case*.py
+tools/*usecase*.py
+tools/generate_*.py
+tools/upgrade_*.py
+tools/update_research_flow_*.py
+tools/update_thesis_*.py
+tools/remove_*_from_thesis.py
+tools/preprocess_toc_docx.py
+tools/docx_requirements.txt
+tools/docx_toolchain.md
 
 # Legacy prototype kept locally only.
 old/

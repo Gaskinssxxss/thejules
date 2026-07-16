@@ -9,9 +9,8 @@
     "test_id": "TEST_LOCAL_LAB_TCP_SYN_01",
     "target_ip": "SERVER_TARGET_IP",
     "target_ports": [8080],
+    "http_host": "0.0.0.0",
+    "http_port": 8080,
     "window_ms": 5000
-  },
-  "relay": {
-    "enabled": false
   }
 }

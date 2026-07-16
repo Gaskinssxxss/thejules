@@ -1,14 +1,21 @@
 # Deployment Modes
 
-Sistem dibuat agar kode yang sama bisa dipakai di beberapa environment. Perbedaan environment hanya berada pada file konfigurasi dan endpoint telemetry.
+Sistem dibuat dengan satu collector utama yang berjalan pada server target. Collector ini bersifat hybrid: membaca fitur TCP SYN dari packet pada interface jaringan dan sekaligus menjalankan HTTP request counter pada port layanan uji.
+
+Mode aktif yang dipertahankan:
+
+1. `direct-server`
+2. `local-lab`
 
 ## Mode 1: Direct Server
 
 Mode ini adalah arsitektur ideal untuk implementasi pada server target sebenarnya.
 
 ```text
-Server target + collector -> ESP32
+Server target + hybrid collector -> ESP32
 ```
+
+Server target dapat berupa server layanan Universitas Mataram atau server uji resmi yang diberi izin untuk menjalankan collector. Collector membaca traffic masuk pada interface server, menghitung fitur per window waktu, lalu mengirim telemetry langsung ke ESP32.
 
 Gunakan config:
 
@@ -19,7 +26,7 @@ config/direct-server.example.json
 Jalankan:
 
 ```bash
-tools/start_packet_collector.sh config/direct-server.example.json
+sudo python3 tools/start_collector_mode.py config/direct-server.example.json --component collector
 ```
 
 Yang perlu diubah saat deployment:
@@ -27,47 +34,21 @@ Yang perlu diubah saat deployment:
 - `collector.interface`
 - `collector.target_ip`
 - `collector.target_ports`
+- `collector.http_host`
+- `collector.http_port`
 - `collector.esp32_url`
 - `collector.test_id`
+- `collector.window_ms`
 
-## Mode 2: VPS Relay
+## Mode 2: Local Lab
 
-Mode ini dipakai untuk pengujian jika collector berada di VPS publik tetapi ESP32 berada di jaringan lokal/NAT.
-
-```text
-VPS + collector -> relay PC B -> ESP32
-```
-
-Collector tidak perlu tahu apakah endpoint adalah ESP32 langsung atau relay. Collector hanya POST ke `collector.esp32_url`.
-
-Gunakan config:
+Mode ini dipakai untuk demo dan pengujian lokal terkontrol.
 
 ```text
-config/vps-relay.example.json
+PC A attacker/tester -> PC B target + hybrid collector -> ESP32
 ```
 
-Di PC B:
-
-```bash
-tools/start_relay_tunnel.sh config/vps-relay.example.json
-tools/run_cloudflare_tunnel_opsi_a.sh 18080
-```
-
-Di VPS:
-
-```bash
-tools/start_packet_collector.sh config/vps-relay.example.json
-```
-
-Untuk VPS NAT, `collector.target_ip` biasanya memakai IP internal VPS yang terlihat pada interface, misalnya `SERVER_INTERNAL_IP`.
-
-## Mode 3: Local Lab
-
-Mode ini dipakai untuk pengujian lokal terkontrol.
-
-```text
-PC A attacker -> PC B target + collector -> ESP32
-```
+Mode ini merepresentasikan prinsip direct-server, tetapi server target diganti dengan PC/laptop lokal. Mode ini berguna saat belum ada akses ke server kampus.
 
 Gunakan config:
 
@@ -75,33 +56,11 @@ Gunakan config:
 config/local-lab.example.json
 ```
 
-Jalankan di PC B:
+Jalankan di PC target:
 
 ```bash
-tools/start_packet_collector.sh config/local-lab.example.json
+sudo python3 tools/start_collector_mode.py config/local-lab.example.json --component collector
 ```
-
-## Mode 4: VPS Public HTTP DDoS
-
-Mode ini dipakai untuk pengujian DDoS application layer pada endpoint HTTP publik VPS.
-
-```text
-PC A attacker -> public IP/port VPS -> HTTP target + app collector -> ESP32/relay
-```
-
-Gunakan config:
-
-```text
-config/vps-http-ddos-public.example.json
-```
-
-Jalankan:
-
-```bash
-tools/start_http_target.sh config/vps-http-ddos-public.example.json
-```
-
-Jika ESP32 berada di jaringan lokal/NAT, jalankan relay di PC lokal dan isi `http_target.esp32_url` dengan URL relay yang aktif.
 
 ## Healthcheck
 
@@ -128,15 +87,15 @@ tools/thejules
 CLI akan memandu:
 
 - memilih mode deployment,
-- mengisi interface, target IP, target port, endpoint ESP32/relay,
+- mengisi interface, target IP, target port, HTTP bind host/port, dan endpoint ESP32,
 - menyimpan file config baru,
 - menampilkan command run,
 - menjalankan healthcheck ESP32 jika URL ESP32 bisa dijangkau.
 
 ## Prinsip Implementasi
 
-- Kode collector tidak diubah antar environment.
-- Jika ESP32 reachable langsung, `collector.esp32_url` diisi IP ESP32.
-- Jika ESP32 tidak reachable langsung, `collector.esp32_url` diisi URL relay.
-- Relay bersifat opsional dan tidak menjalankan deteksi.
+- Hanya ada satu collector utama.
+- Jika sistem diterapkan pada server target kampus, gunakan `direct-server`.
+- Jika hanya melakukan demo lokal, gunakan `local-lab`.
+- Collector mengirim telemetry `TCP` dan `HTTP` ke ESP32.
 - Rule-based detection tetap dilakukan pada ESP32.

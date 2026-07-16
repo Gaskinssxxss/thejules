@@ -1,48 +1,70 @@
 # Scope Deteksi Opsi 1
 
-Versi pengembangan ini difokuskan pada dua jenis serangan yang masih sesuai dengan konsep collector di server target. Pada implementasi riil di lingkungan Universitas Mataram, collector ditempatkan pada server target yang menjalankan layanan kampus. Pada pengujian saat ini, server target direpresentasikan dengan VPS publik karena akses langsung ke server kampus belum tersedia.
+Versi pengembangan ini difokuskan pada dua jenis serangan yang sesuai dengan konsep collector di server target. Pada implementasi riil di lingkungan Universitas Mataram, collector ditempatkan pada server target yang menjalankan layanan kampus atau server uji resmi.
 
 ## 1. TCP SYN Flood
 
-TCP SYN Flood merepresentasikan serangan pada transport layer. Collector packet-level membaca paket TCP yang masuk ke server target dan menghitung jumlah flag SYN pada window waktu tertentu.
+Layer:
+
+```text
+Layer 4 / Transport
+```
+
+Parameter utama:
+
+- `proto = TCP`
+- `syn_count`
+- `packet_count`
+- `dst_port`
+- `window_ms`
 
 Rule:
 
 ```text
 RULE_TCP_SYN_001
-Jika proto = TCP dan syn_count >= 100 dalam window <= 5000 ms,
-maka alert TCP_SYN_FLOOD.
+Alert jika proto = TCP, syn_count >= 100, payload_bytes = 0, dan window <= 5000 ms.
 ```
 
-Pengujian dilakukan pada server target yang dapat menerima traffic dari luar. Collector membaca paket TCP yang masuk ke interface server, lalu mengirim ringkasan `syn_count` ke ESP32.
-
-Contoh pengujian publik dengan VPS:
+Alur:
 
 ```text
-PC A attacker -> public IP/port VPS -> server target VPS + collector -> ESP32
+Attacker/tester -> server target + hybrid collector -> ESP32
 ```
 
-## 2. DDoS HTTP Request Flood
+## 2. HTTP Request Flood
 
-DDoS direpresentasikan sebagai HTTP request flood pada layanan web publik. Collector HTTP menghitung jumlah request yang masuk ke server target pada window waktu tertentu, lalu mengirim telemetry `proto=HTTP` ke ESP32.
+Layer:
+
+```text
+Layer 7 / Application
+```
+
+Parameter utama:
+
+- `proto = HTTP`
+- `packet_count` atau request count
+- `src_ip`
+- `dst_ip`
+- `dst_port`
+- `window_ms`
 
 Rule:
 
 ```text
 RULE_DDOS_HTTP_001
-Jika proto = HTTP dan packet_count/request_count >= 200 dalam window <= 5000 ms,
-maka alert HTTP_DDOS_FLOOD.
+Alert jika proto = HTTP dan packet_count >= 200 dalam window <= 5000 ms.
 ```
 
-Pengujian dilakukan ke endpoint publik server target:
+Alur:
 
 ```text
-PC A attacker/tester -> public IP/port VPS -> HTTP target server + HTTP collector -> ESP32
+Client/tester -> server target + hybrid collector -> ESP32
 ```
 
-Catatan batasan:
+## Batasan
 
-- Sistem mendeteksi indikasi serangan dan menghasilkan alert, bukan melakukan mitigasi otomatis.
-- DDoS yang diuji pada versi ini mencakup TCP SYN Flood pada layer 4 dan HTTP request flood pada layer 7.
-- UDP flood tidak menjadi rule utama pada scope versi ini.
-- Relay hanya digunakan pada kondisi pengujian ketika ESP32 berada di jaringan lokal/NAT dan tidak bisa diakses langsung dari server target publik.
+- Sistem melakukan deteksi dan alerting, bukan mitigasi otomatis.
+- ESP32 memproses telemetry summary, bukan raw packet penuh.
+- Threshold awal berasal dari pengujian lab dan harus dikalibrasi ulang pada traffic produksi.
+- Sistem tidak melakukan dekripsi payload HTTPS.
+- Sistem tidak diklaim memantau seluruh jaringan Universitas Mataram; cakupannya mengikuti lokasi collector.
